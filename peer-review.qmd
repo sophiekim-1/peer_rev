@@ -1,0 +1,46 @@
+---
+title: "ECON 470 Peer Review"
+subtitle: "Spring 2026"
+author: "Sophie Kim"
+format:
+  pdf:
+    output-file: "kim-s-peer-review"
+    output-ext:  "pdf"
+    header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+## 1. Code Review and Efficiency (10 points): Are there any parts of the code that seem inefficient or redundant? How could these sections be optimized for better performance or clarity?
+
+Overall, Claire's code for data building hcris-data-build.ipynb and the analysis file 4_3analysis.ipynb accomplishes the objectives of homework 4. 
+
+The most significant inefficiency is that the code handles hospitals with multiple reports per fiscal year differently. The summarize steps use sum() and max() instead of na_sum() and na_max(). Using na_sum() or na_max() returns NA if a hospital files two reports in one year and neither report has a value. But by using sum() or max(), this gives all missing values a zero, which pulls the price estimate downwards. Another inefficiency is that the penalty definition is different in Question 5 compared to the rest of the homework. In Q5, Claire defines  penalized hospital as one where hrrp_payment > 0 | hvbp_payment < 0. In Q6 onward, penalty is measured as a continuous net_penalty variable. Otherwise, the code is efficient and I was able to replicate it successfully. 
+
+\newpage
+## 2. Comparison of Results (10 points): How well do their results compare with your own? Are there any areas where the two analyses are particularly different?
+
+Question 1, 2, and 3 have nearly identical results. For question 2, both my results and Claire's results have the same counts for almost every year, with a minor discrepancy in 2019 with the number of unique hospitals differing very slightly, a small 4 hospital difference. This could be because I use na_sum() and na_max() functions while Claire uses sum() and max() functions but this is a small difference that doesn't meaningfully affect the analysis. 
+
+Question 4 also shows estimated prices around $10,000 per discharge with an upward trend. I trim the place distribution using a 1st and 99th percentile cutoff for this question and future regressions while Claire uses ad hoc filters specific to Question 4 (price <= 100000, price_denom >= 100, beds >= 30). This results in my violin plots extending up to $30,000 and Claire's capped at $50,000. 
+
+Question 5 shows the same trend in my results and Claire's but there is a striking difference in the magnitude of increase. My plot shows the share penalized rising from about 25% in 2012 to roughly 70% by 2013, then stabilizing around 70% through 2019. Claire's plot shows a much lower share that starts near 10% in 2012 and reaches about 50% by 2014–2019. This comes from a different definition in penalty where I defined it as hvbp_payment - hrrp_payment < 0 and Claire defined it as hrrp_payment > 0 | hvbp_payment < 0. This interpretation difference changes the scope of how widely penalty programs affect hospitals. 
+
+Question 6, 7, and 8 have different results all from the same root cause. The two analyses use opposite sign convention for net penalty. Claire computes (net_penalty = hrrp_payment - hvbp_payment) while I compute (net_penalty = hvbp_payment - hrrp_payment) and this choice flips the sign of all coefficiencts in Q6, reverses the direction of the scatterplot in Q7 and inverts the first stage slope in Q8. In Q6, I get a small negative and statistically significant coefficient on net penalty (around -0.003 to -0.004, p < 0.05), suggesting penalized hospitals had slightly lower price growth and Claire finds a small positive but insignificant coefficient (around 0.002 to 0.003). Both have a very low R², meaning net penalty alone explains almost none of the variation in price changes but the direction of the effect is opposite. For Q8, the same -/+ effect is shown in the first stage where my coefficient on average Medicare discharges is negative (around -4.3), and Claire's is positive (+4.181). Both are strongly significant (p < 0.001). The reduced form shows a different result not driven from the sign convention. I found a small, insignificant result between Medicare discharges and price changes but Claire found a large and significant one that is driven by the way we differently restricted the outliers as described in Q4. Claire has a less restrictive price outlier filter that retains high-price hospitals and this amplifies the estimated relationship between Medicare volume and price growth. 
+
+Question 9 is where the differences from Q6-8 come together. My IV estimates are small, negative, and statistically insignificant across all three specifications, suggesting penalties had no significant causal effect on hospital price changes. Claire's IV estimates are positive and statistically significant across all three specifications, suggesting that penalties caused price increases. The sign difference is because of the net penalty convention but the significance difference is because of how we treated the outliers. My results show that the penalties have no significant causal effect on hospital price change and Claire's results suggests that penalties did cause price increases. This significance is due to the analysis being sensitive to the outliers and I am unsure whether it reflects a robust relationship. 
+
+\newpage
+## 3. Replicability and Documentation (10 points): Are you able to clone your peer’s repository and replicate their results?
+
+Yes. I used the git clone function to clone Claire's hwk4 repository in my Open On Demand. At first I attempted to fork her repository then pull it but the clone function works more seamlessly. I reconstructed the data using her data-build R code then ran her submission 3 ipynb file. I was able to successfully run and replicate her results. 
+
+\newpage
+## 4. Diagnosing Replication (10 points): If you were unable to replicate their results using their code, what do you think is the central problem? If you were able to replicate, are there things that could have been changed (e.g., code structure, documentation, commenting, etc) that would have made it easier?
+
+I was able to replicate the code. One thing that would make replicating and understanding the analysis easier is if there were consistent outlier trimming rules to the price variables in all necessary questions. In Q4 the plot applies hard filters (price <= 100000, price_denom >= 100, beds >= 30), but these filters are not carried forward into the regression dataset built in Q6-8. That makes the regression sample in Q6–Q9 is based on a less cleaned price variable than what is shown in Q4. One small point is that there is redundant data rebuild in Otherwise, there was appropriate commenting for the replicator to see how the logic of the code progresses. 
+
+\newpage
+## 5. Final Thoughts (10 points): How might you update your own code based on your review of your peer’s work?
+
+I would change my code to establish a cleaner combine step. She uses bind_rows() instead of rbind() when merging the 1996 and 2010 data. This works better because bind_rows() handles mismatched columns by filling them with NA.  I would also use map_dfr for reading year-by-year files. In the analysis file, Claire uses map_dfr(years, ~ read_csv(...)) to load the per-year output CSVs in one clean line, which is more concise than a manual loop with rbind. I would use this approach when I am reading year-by-year files. Overall, I was able to see the strengths and inconsistencies in both my analysis and Claire's analysis. 
